@@ -1,20 +1,25 @@
-import os
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 import time
 
-def run_command(cmd):
-    os.system(f"adb shell {cmd}")
+# إعدادات المتصفح ليعمل كأنه هاتف
+chrome_options = Options()
+chrome_options.add_argument("--headless") # بدون واجهة رسومية ليعمل في GitHub
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+mobile_emulation = { "deviceName": "Nexus 5" }
+chrome_options.add_experimental_option("mobileEmulation", mobile_emulation)
 
-# انتظر قليلاً ليتأكد من تشغيل المحاكي
-print("Checking for device...")
-time.sleep(5)
+driver = webdriver.Chrome(options=chrome_options)
 
-# 1. فتح المتصفح والذهاب لإنستقرام
-print("Opening Instagram on Browser...")
-run_command("am start -a android.intent.action.VIEW -d https://www.instagram.com")
-
-# 2. انتظر التحميل ثم خذ لقطة شاشة للتأكد
-time.sleep(10)
-print("Taking confirmation screenshot...")
-os.system("adb shell screencap -p /sdcard/insta.png")
-os.system("adb pull /sdcard/insta.png .")
-print("Done! Check insta.png in your repository.")
+try:
+    print("Opening Instagram...")
+    driver.get("https://www.instagram.com")
+    time.sleep(5) # انتظر التحميل
+    
+    # التقاط لقطة شاشة
+    driver.save_screenshot("insta_check.png")
+    print("Screenshot saved as insta_check.png")
+    
+finally:
+    driver.quit()
