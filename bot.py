@@ -1,6 +1,7 @@
 import os
 import time
 import requests
+import random
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -24,60 +25,77 @@ def wait_for_user_input(prompt):
             return res['result'][-1]['message']['text']
         time.sleep(3)
 
-# --- إعدادات المتصفح ---
+# --- إعدادات البصمة الرقمية (iPhone 13 Pro) ---
 chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("--lang=en-US") # توحيد اللغة لضمان عمل الـ Selectors
-user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1"
+
+# 1. إعدادات اللغة والمنطقة
+chrome_options.add_argument("--lang=en-US")
+
+# 2. انتحال هوية iPhone 13 Pro بالكامل
+user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
 chrome_options.add_argument(f"user-agent={user_agent}")
 
+# 3. إعدادات الشاشة واللمس الخاصة بالايفون
+mobile_emulation = {
+    "deviceMetrics": { "width": 390, "height": 844, "pixelRatio": 3.0 },
+    "userAgent": user_agent
+}
+chrome_options.add_experimental_option("mobileEmulation", mobile_emulation)
+
+# 4. منع كشف الأتمتة (Anti-Detection)
+chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+chrome_options.add_experimental_option('useAutomationExtension', False)
+
 driver = webdriver.Chrome(options=chrome_options)
-wait = WebDriverWait(driver, 20)
+
+# إخفاء خاصية webdriver من المتصفح برمجياً
+driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+  "source": """
+    Object.defineProperty(navigator, 'webdriver', {
+      get: () => undefined
+    })
+  """
+})
+
+wait = WebDriverWait(driver, 25)
 
 try:
-    print("Opening Instagram Signup...")
+    print("Launching iPhone Emulator...")
+    # الدخول لرابط الجوال مباشرة
     driver.get("https://www.instagram.com/accounts/emailsignup/")
     
-    # 1. التعامل مع نافذة الـ Cookies (إذا ظهرت)
-    try:
-        time.sleep(3)
-        cookie_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Allow') or contains(text(), 'Accept')]")))
-        cookie_btn.click()
-        print("Cookies accepted.")
-    except:
-        print("No cookie dialog found.")
+    # محاولة تجاوز الـ 429 بالانتظار العشوائي
+    time.sleep(random.randint(5, 10))
 
-    # 2. طلب البريد
-    email = wait_for_user_input("🌐 أرسل لي البريد الإلكتروني الآن:")
+    # التقاط صورة للتأكد من الصفحة (هل تجاوزنا الحظر؟)
+    driver.save_screenshot("check_iphone.png")
+    with open("check_iphone.png", 'rb') as f:
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID, 'caption': "📱 فحص بصمة الايفون الجديدة:"}, files={'photo': f})
 
-    # 3. إدخال البيانات باستخدام محددات أكثر دقة
-    try:
-        # البحث عن الحقول بواسطة الاسم أو XPATH بديل
-        email_field = wait.until(EC.presence_of_element_to_be_clickable((By.NAME, "emailOrPhone")))
-        email_field.send_keys(email)
-        
-        driver.find_element(By.NAME, "fullName").send_keys("Jasser User")
-        driver.find_element(By.NAME, "username").send_keys(f"juser_{int(time.time())}")
-        driver.find_element(By.NAME, "password").send_keys("Pass@Jasser2026")
-        
-        time.sleep(2)
-        submit_btn = driver.find_element(By.XPATH, "//button[@type='submit']")
-        submit_btn.click()
-        print("Form submitted.")
-    except Exception as e:
-        img_error = "error_field.png"
-        driver.save_screenshot(img_error)
-        with open(img_error, 'rb') as f:
-            requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID, 'caption': f"❌ فشل العثور على الحقول. تفحص الصورة:"}, files={'photo': f})
-        raise e
+    # طلب البريد من المستخدم
+    email = wait_for_user_input("📧 البصمة جاهزة، أرسل البريد الآن:")
 
-    # 4. طلب الرمز
-    otp_code = wait_for_user_input("🔢 أرسل كود التأكيد الذي وصلك:")
+    # إدخال البيانات
+    email_field = wait.until(EC.presence_of_element_to_be_clickable((By.NAME, "emailOrPhone")))
+    email_field.send_keys(email)
+    time.sleep(random.uniform(1.5, 3.2)) # محاكاة سرعة الإنسان في الكتابة
     
-    # هنا تكمل عملية إدخال الرمز بنفس الطريقة...
-    send_msg("⌛ جاري معالجة الكود...")
+    driver.find_element(By.NAME, "fullName").send_keys("Jasser iPhone")
+    driver.find_element(By.NAME, "username").send_keys(f"j_apple_{int(time.time())}")
+    driver.find_element(By.NAME, "password").send_keys("Apple@2026_Secure")
+    
+    submit_btn = driver.find_element(By.XPATH, "//button[@type='submit']")
+    submit_btn.click()
+    
+    otp = wait_for_user_input("🔢 تم! أرسل كود التأكيد:")
+    send_msg(f"تم استقبال الكود: {otp}")
+
+except Exception as e:
+    send_msg(f"❌ وقع خطأ: {str(e)[:50]}")
+    driver.save_screenshot("final_error.png")
 
 finally:
     driver.quit()
