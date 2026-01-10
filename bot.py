@@ -6,15 +6,18 @@ from selenium.webdriver.chrome.options import Options
 
 # --- إعدادات تليجرام ---
 TOKEN = "7665591962:AAFIIe-izSG4rd71Kruf0xmXM9j11IYdHvc"
-CHAT_ID = "ضع_هنا_رقم_الايدي_الخاص_بك" # استبدل هذا الرقم بـ Chat ID الخاص بك
+CHAT_ID = "5653032481" 
 
 def send_to_telegram(image_path):
     url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
-    with open(image_path, 'rb') as photo:
-        files = {'photo': photo}
-        data = {'chat_id': CHAT_ID, 'caption': '📸 لقطة شاشة من إنستقرام عبر GitHub'}
-        response = requests.post(url, data=data, files=files)
-        return response.json()
+    try:
+        with open(image_path, 'rb') as photo:
+            files = {'photo': photo}
+            data = {'chat_id': CHAT_ID, 'caption': '📸 تم التقاط الصورة من داخل سيرفرات GitHub بنجاح!'}
+            response = requests.post(url, data=data, files=files)
+            return response.json()
+    except Exception as e:
+        print(f"Error sending to Telegram: {e}")
 
 # --- إعدادات المتصفح (Headless) ---
 chrome_options = Options()
@@ -29,7 +32,7 @@ driver = webdriver.Chrome(options=chrome_options)
 try:
     print("Opening Instagram...")
     driver.get("https://www.instagram.com")
-    time.sleep(7) # زيادة الوقت للتأكد من التحميل الكامل
+    time.sleep(10) # ننتظر 10 ثوانٍ لضمان تحميل الصفحة
     
     img_name = "insta_check.png"
     driver.save_screenshot(img_name)
