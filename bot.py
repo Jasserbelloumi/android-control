@@ -17,82 +17,88 @@ def send_msg(text):
 
 def wait_for_user_input(prompt):
     send_msg(prompt)
-    # الحصول على آخر تحديث لتجنب الرسائل القديمة
     start_res = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates").json()
     last_id = start_res['result'][-1]['update_id'] if start_res['result'] else 0
     while True:
         res = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates", params={'offset': last_id + 1}).json()
-        if res['result']:
-            return res['result'][-1]['message']['text']
+        if res['result']: return res['result'][-1]['message']['text']
         time.sleep(3)
 
-# --- إعدادات ايفون كاملة ---
+# --- إعدادات iPhone 13 Pro العميقة ---
 chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--lang=en-US,en;q=0.9")
 
-# انتحال هوية iPhone 13 Pro
-user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Mobile/15E148 Safari/604.1"
 chrome_options.add_argument(f"user-agent={user_agent}")
 
+# محاكاة أبعاد الشاشة وبصمة اللمس
 mobile_emulation = {
     "deviceMetrics": { "width": 390, "height": 844, "pixelRatio": 3.0 },
     "userAgent": user_agent
 }
 chrome_options.add_experimental_option("mobileEmulation", mobile_emulation)
-
-# منع كشف البوت
 chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
 chrome_options.add_experimental_option('useAutomationExtension', False)
 
 driver = webdriver.Chrome(options=chrome_options)
 
-# حذف أثر الـ WebDriver تماماً
+# --- استخدام بروتوكول CDP لتزييف البصمة (WebGL & Navigator) ---
 driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
   "source": """
+    # تزييف كرت الشاشة ليكون Apple GPU
+    const getParameter = list => {
+      const param = list[0];
+      if (param === 37445) return 'Apple Inc.';
+      if (param === 37446) return 'Apple GPU';
+      return list[1];
+    };
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-    window.navigator.chrome = { runtime: {},  };
     Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
   """
 })
 
-wait = WebDriverWait(driver, 30)
+wait = WebDriverWait(driver, 35)
 
 try:
-    print("Connecting to Instagram via iPhone Fingerprint...")
+    # إضافة "وقت راحة" عشوائي في البداية لتفادي كشف النمط
+    wait_start = random.randint(40, 70)
+    print(f"Waiting for {wait_start}s to bypass GitHub patterns...")
+    time.sleep(wait_start)
+
     driver.get("https://www.instagram.com/accounts/emailsignup/")
     
-    # انتظار عشوائي لتجنب الحظر
-    time.sleep(random.randint(7, 12))
+    # تأخير عشوائي (Jitter)
+    time.sleep(random.uniform(5.5, 10.2))
 
-    # فحص الصفحة بصورة
-    driver.save_screenshot("iphone_check.png")
-    with open("iphone_check.png", 'rb') as f:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID, 'caption': "📸 واجهة الايفون الحالية:"}, files={'photo': f})
+    driver.save_screenshot("check.png")
+    with open("check.png", 'rb') as f:
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID, 'caption': "📱 تم تشغيل البصمة العميقة..."}, files={'photo': f})
 
-    # طلب البريد
-    email = wait_for_user_input("📧 البصمة محملة. أرسل البريد الإلكتروني الآن:")
+    email = wait_for_user_input("📧 أرسل البريد الآن:")
 
-    # تعبئة البيانات بحذر
-    email_input = wait.until(EC.element_to_be_clickable((By.NAME, "emailOrPhone")))
-    for char in email: # محاكاة كتابة بشرية حرفاً بحرف
-        email_input.send_keys(char)
-        time.sleep(random.uniform(0.1, 0.3))
+    # إدخال البريد بمحاكاة بشرية (حرف حرف)
+    email_field = wait.until(EC.element_to_be_clickable((By.NAME, "emailOrPhone")))
+    for char in email:
+        email_field.send_keys(char)
+        time.sleep(random.uniform(0.1, 0.4))
 
+    # ملء باقي البيانات عشوائياً
     driver.find_element(By.NAME, "fullName").send_keys("Jasser iPhone")
-    driver.find_element(By.NAME, "username").send_keys(f"j_apple_{int(time.time())}")
-    driver.find_element(By.NAME, "password").send_keys("Secure@Apple2026")
+    driver.find_element(By.NAME, "username").send_keys(f"j_ios_{int(time.time())}")
+    driver.find_element(By.NAME, "password").send_keys("Secure@Apple2026!")
     
-    time.sleep(2)
-    submit = driver.find_element(By.XPATH, "//button[@type='submit']")
-    submit.click()
+    time.sleep(random.uniform(2, 4))
+    driver.find_element(By.XPATH, "//button[@type='submit']").click()
     
-    otp = wait_for_user_input("🔢 أرسل كود التأكيد (OTP) الآن:")
-    send_msg(f"تم استقبال الكود: {otp}")
+    otp = wait_for_user_input("🔢 أرسل كود الـ OTP:")
+    send_msg(f"تم الاستلام: {otp}")
 
 except Exception as e:
-    send_msg(f"⚠️ خطأ: {str(e)}")
+    send_msg(f"⚠️ خطأ: {str(e)[:60]}")
     driver.save_screenshot("error.png")
 
 finally:
