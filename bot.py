@@ -12,25 +12,25 @@ CHAT_ID = "5653032481"
 def send_msg(text):
     requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", data={'chat_id': CHAT_ID, 'text': text})
 
-def get_last_msg():
-    """وظيفة لجلب آخر رسالة أرسلتها أنت للبوت"""
-    url = f"https://api.telegram.org/bot{TOKEN}/getUpdates"
-    res = requests.get(url).json()
-    if res['result']:
-        # نأخذ آخر رسالة من المستخدم
-        return res['result'][-1]['message']['text']
-    return None
-
 def wait_for_user_input(prompt):
     send_msg(prompt)
-    last_id = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates").json()['result'][-1]['update_id']
     print(f"Waiting for: {prompt}")
+    
+    # الحصول على ID لآخر تحديث موجود حالياً لتجنب قراءة الرسائل القديمة
+    start_res = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates").json()
+    last_update_id = 0
+    if start_res['result']:
+        last_update_id = start_res['result'][-1]['update_id']
+
     while True:
-        res = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates").json()
-        if res['result']:
-            new_msg = res['result'][-1]
-            if new_msg['update_id'] > last_id:
-                return new_msg['message']['text']
+        try:
+            res = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates", params={'offset': last_update_id + 1}).json()
+            if res['result']:
+                for update in res['result']:
+                    if 'message' in update and str(update['message']['chat']['id']) == CHAT_ID:
+                        return update['message']['text']
+        except Exception as e:
+            print(f"Error polling: {e}")
         time.sleep(3)
 
 # --- إعدادات المتصفح ---
@@ -38,35 +38,37 @@ chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
+mobile_emulation = { "deviceName": "Nexus 5" }
+chrome_options.add_experimental_option("mobileEmulation", mobile_emulation)
+
 driver = webdriver.Chrome(options=chrome_options)
 
 try:
-    # 1. الدخول لصفحة التسجيل
+    print("Opening Instagram Signup...")
     driver.get("https://www.instagram.com/accounts/emailsignup/")
-    time.sleep(5)
+    time.sleep(8)
 
-    # 2. طلب البريد الإلكتروني منك عبر تليجرام
-    email = wait_for_user_input("🌐 من فضلك أرسل البريد الإلكتروني لإنشاء الحساب:")
+    # طلب البريد
+    email = wait_for_user_input("🌐 أرسل الآن البريد الإلكتروني الذي تريد استخدامه:")
     
-    # 3. ملء البيانات (مثال مبسط للإدخال)
-    # ملاحظة: إنستقرام يغير أسماء العناصر (Selectors) باستمرار، يجب فحصها بدقة
-    driver.find_element(By.NAME, "emailOrPhone").send_keys(email)
-    driver.find_element(By.NAME, "fullName").send_keys("Jasser Bot")
-    driver.find_element(By.NAME, "username").send_keys(f"jasser_bot_{int(time.time())}")
-    driver.find_element(By.NAME, "password").send_keys("StrongPass123!")
-    
-    # النقر على زر التسجيل
-    driver.find_element(By.XPATH, "//button[@type='submit']").click()
-    time.sleep(5)
+    # محاولة إدخال البيانات (Selectors قد تحتاج تحديث حسب واجهة انستقرام الحالية)
+    try:
+        driver.find_element(By.NAME, "emailOrPhone").send_keys(email)
+        driver.find_element(By.NAME, "fullName").send_keys("Jasser User")
+        driver.find_element(By.NAME, "username").send_keys(f"user_{int(time.time())}")
+        driver.find_element(By.NAME, "password").send_keys("Pass@Jasser2026")
+        time.sleep(2)
+        driver.find_element(By.XPATH, "//button[@type='submit']").click()
+    except Exception as e:
+        send_msg(f"⚠️ خطأ أثناء إدخال البيانات: {str(e)[:100]}")
 
-    # 4. طلب رمز التأكيد (OTP)
-    otp_code = wait_for_user_input("🔢 وصلك الرمز؟ أرسله لي الآن:")
+    # طلب الرمز
+    otp_code = wait_for_user_input("🔢 وصلك كود التأكيد؟ أرسله هنا:")
     
-    # إدخال الرمز
-    driver.find_element(By.NAME, "email_confirmation_code").send_keys(otp_code)
-    
-    driver.save_screenshot("final_step.png")
-    send_msg("✅ تمت العملية! تفحص الصورة في GitHub أو اطلبها هنا.")
+    # التقاط صورة للتأكد من مكان الرمز
+    driver.save_screenshot("step_otp.png")
+    with open("step_otp.png", 'rb') as photo:
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID}, files={'photo': photo})
 
 finally:
     driver.quit()
