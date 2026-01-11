@@ -30,29 +30,30 @@ chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("--disable-gpu") # لإصلاح مشاكل الـ Crash في GitHub
-user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Mobile/15E148 Safari/604.1"
+chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.7 Mobile/15E148 Safari/604.1"
 chrome_options.add_argument(f"user-agent={user_agent}")
 
 driver = webdriver.Chrome(options=chrome_options)
-# إخفاء الـ WebDriver بطريقة أعمق
-driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-
-wait = WebDriverWait(driver, 20)
+wait = WebDriverWait(driver, 25)
 
 try:
-    print("Step 1: Bypass Initial Block...")
-    time.sleep(random.randint(10, 20))
+    print("Opening Instagram...")
     driver.get("https://www.instagram.com/accounts/emailsignup/")
-    
-    # انتظار ظهور الحقل الأول للتأكد أن الصفحة فتحت
-    email_field = wait.until(EC.presence_of_element_to_be_clickable((By.NAME, "emailOrPhone")))
-    
-    email = wait_for_user_input("📧 الصفحة جاهزة! أرسل البريد الآن:")
+    time.sleep(10)
 
-    # ملء البيانات
+    # التحقق مما إذا كانت الصفحة تعمل
+    if "isn't working" in driver.page_source or "429" in driver.title:
+        send_msg("⚠️ الصفحة محظورة حالياً (429). سأحاول إعادة التحميل بعد قليل...")
+        time.sleep(15)
+        driver.refresh()
+
+    # تصحيح الخطأ الإملائي هنا: presence_of_element_to_be_clickable
+    email_field = wait.until(EC.element_to_be_clickable((By.NAME, "emailOrPhone")))
+    
+    email = wait_for_user_input("📧 الصفحة فتحت بنجاح! أرسل البريد الآن:")
+
     email_field.send_keys(email)
-    time.sleep(1)
     driver.find_element(By.NAME, "fullName").send_keys("Jasser " + ''.join(random.choices(string.ascii_letters, k=4)))
     driver.find_element(By.NAME, "username").send_keys("jass_" + ''.join(random.choices(string.digits, k=8)))
     driver.find_element(By.NAME, "password").send_keys("Pass@2026_Secure")
@@ -60,36 +61,35 @@ try:
     time.sleep(2)
     driver.find_element(By.XPATH, "//button[@type='submit']").click()
     
-    # محاولة التعامل مع تاريخ الميلاد (إذا ظهر)
+    # التعامل مع تاريخ الميلاد
     try:
-        time.sleep(4)
-        print("Checking for Birthday page...")
-        month_select = wait.until(EC.presence_of_element_to_be_clickable((By.XPATH, "//select[@title='Month:']")))
-        Select(month_select).select_by_index(random.randint(1, 10))
+        time.sleep(5)
+        month_sel = wait.until(EC.presence_of_element_to_be_clickable((By.XPATH, "//select[@title='Month:']")))
+        Select(month_sel).select_by_index(random.randint(1, 11))
         Select(driver.find_element(By.XPATH, "//select[@title='Day:']")).select_by_index(random.randint(1, 25))
-        Select(driver.find_element(By.XPATH, "//select[@title='Year:']")).select_by_visible_text("1998")
+        Select(driver.find_element(By.XPATH, "//select[@title='Year:']")).select_by_visible_text("1999")
         driver.find_element(By.XPATH, "//button[text()='Next']").click()
     except:
-        print("Birthday page skipped or not found.")
+        pass
 
     otp = wait_for_user_input("🔢 أرسل كود الـ OTP الآن:")
     
-    code_field = wait.until(EC.presence_of_element_to_be_clickable((By.NAME, "email_confirmation_code")))
+    # تصحيح الخطأ الإملائي هنا أيضاً
+    code_field = wait.until(EC.element_to_be_clickable((By.NAME, "email_confirmation_code")))
     code_field.send_keys(otp)
     time.sleep(2)
     driver.find_element(By.XPATH, "//button[@type='submit']").click()
     
-    send_msg("🚀 تم إرسال الكود، ننتظر النتيجة النهائية...")
+    send_msg("🚀 جاري معالجة الكود الأخير...")
     time.sleep(10)
-    driver.save_screenshot("final_result.png")
-    with open("final_result.png", 'rb') as f:
+    driver.save_screenshot("final_check.png")
+    with open("final_check.png", 'rb') as f:
         requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID}, files={'photo': f})
 
 except Exception as e:
-    # التقاط صورة الخطأ فوراً وإرسالها لتليجرام
-    driver.save_screenshot("crash_report.png")
-    with open("crash_report.png", 'rb') as f:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID, 'caption': f"❌ تعطل السكربت! التفاصيل:\n{str(e)[:100]}"}, files={'photo': f})
+    driver.save_screenshot("error_report.png")
+    with open("error_report.png", 'rb') as f:
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID, 'caption': f"❌ خطأ جديد: {str(e)[:100]}"}, files={'photo': f})
 
 finally:
     driver.quit()
