@@ -30,7 +30,6 @@ chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("--disable-blink-features=AutomationControlled")
 user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.7 Mobile/15E148 Safari/604.1"
 chrome_options.add_argument(f"user-agent={user_agent}")
 
@@ -38,22 +37,27 @@ driver = webdriver.Chrome(options=chrome_options)
 wait = WebDriverWait(driver, 25)
 
 try:
-    print("Opening Instagram...")
+    print("Step 1: Opening Instagram...")
     driver.get("https://www.instagram.com/accounts/emailsignup/")
     time.sleep(10)
 
-    # التحقق مما إذا كانت الصفحة تعمل
-    if "isn't working" in driver.page_source or "429" in driver.title:
-        send_msg("⚠️ الصفحة محظورة حالياً (429). سأحاول إعادة التحميل بعد قليل...")
-        time.sleep(15)
-        driver.refresh()
+    # 1. الضغط على "Sign up with email"
+    try:
+        email_option = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Sign up with email')]")))
+        email_option.click()
+        print("Clicked: Sign up with email")
+        time.sleep(3)
+    except:
+        print("Already on email page or button not found.")
 
-    # تصحيح الخطأ الإملائي هنا: presence_of_element_to_be_clickable
+    # 2. إدخال البريد المحدد تلقائياً
+    target_email = "psvuecpi@hi2.in"
     email_field = wait.until(EC.element_to_be_clickable((By.NAME, "emailOrPhone")))
+    for char in target_email:
+        email_field.send_keys(char)
+        time.sleep(random.uniform(0.1, 0.3))
     
-    email = wait_for_user_input("📧 الصفحة فتحت بنجاح! أرسل البريد الآن:")
-
-    email_field.send_keys(email)
+    # 3. ملء باقي البيانات
     driver.find_element(By.NAME, "fullName").send_keys("Jasser " + ''.join(random.choices(string.ascii_letters, k=4)))
     driver.find_element(By.NAME, "username").send_keys("jass_" + ''.join(random.choices(string.digits, k=8)))
     driver.find_element(By.NAME, "password").send_keys("Pass@2026_Secure")
@@ -61,7 +65,7 @@ try:
     time.sleep(2)
     driver.find_element(By.XPATH, "//button[@type='submit']").click()
     
-    # التعامل مع تاريخ الميلاد
+    # 4. تاريخ الميلاد
     try:
         time.sleep(5)
         month_sel = wait.until(EC.presence_of_element_to_be_clickable((By.XPATH, "//select[@title='Month:']")))
@@ -72,15 +76,14 @@ try:
     except:
         pass
 
-    otp = wait_for_user_input("🔢 أرسل كود الـ OTP الآن:")
+    # 5. طلب الرمز من المستخدم
+    otp = wait_for_user_input(f"🔢 تم إدخال البريد {target_email}\nأرسل كود الـ OTP الآن:")
     
-    # تصحيح الخطأ الإملائي هنا أيضاً
     code_field = wait.until(EC.element_to_be_clickable((By.NAME, "email_confirmation_code")))
     code_field.send_keys(otp)
     time.sleep(2)
     driver.find_element(By.XPATH, "//button[@type='submit']").click()
     
-    send_msg("🚀 جاري معالجة الكود الأخير...")
     time.sleep(10)
     driver.save_screenshot("final_check.png")
     with open("final_check.png", 'rb') as f:
@@ -89,7 +92,7 @@ try:
 except Exception as e:
     driver.save_screenshot("error_report.png")
     with open("error_report.png", 'rb') as f:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID, 'caption': f"❌ خطأ جديد: {str(e)[:100]}"}, files={'photo': f})
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID, 'caption': f"❌ خطأ: {str(e)[:100]}"}, files={'photo': f})
 
 finally:
     driver.quit()
