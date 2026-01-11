@@ -98,7 +98,7 @@ try:
     send_msg(f"تم الاستلام: {otp}")
 
 except Exception as e:
-    send_msg(f"⚠️ خطأ: {str(e)[:60]}")
+    send_msg(f"⚠️ hخطأ: {str(e)[:60]}")
     driver.save_screenshot("error.png")
 
 finally:
