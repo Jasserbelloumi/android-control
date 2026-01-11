@@ -9,94 +9,99 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 
-# --- إعدادات تليجرام ---
+# --- إعدادات التحكم ---
 TOKEN = "7665591962:AAFIIe-izSG4rd71Kruf0xmXM9j11IYdHvc"
 CHAT_ID = "5653032481"
+TARGET_EMAIL = "psvuecpi@hi2.in"
 
 def send_msg(text):
     requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", data={'chat_id': CHAT_ID, 'text': text})
 
 def wait_for_user_input(prompt):
     send_msg(prompt)
-    last_id = 0
+    last_update_id = 0
     while True:
         try:
-            res = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates", params={'offset': last_id + 1}).json()
+            res = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates", params={'offset': last_update_id + 1}).json()
             if res['result']:
                 for update in res['result']:
-                    last_id = update['update_id']
+                    last_update_id = update['update_id']
                     if 'message' in update: return update['message']['text']
         except: pass
         time.sleep(3)
 
-# --- إعدادات البصمة (iPhone 13 Pro Max) ---
+# --- إعدادات الكمبيوتر العملاق (High-End Desktop) ---
 chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.7 Mobile/15E148 Safari/604.1"
+chrome_options.add_argument("--window-size=1920,1080") # دقة شاشة عالية
+
+# User-Agent لجهاز كمبيوتر يعمل بنظام ويندوز 11 ومتصفح كروم حديث
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
 chrome_options.add_argument(f"user-agent={user_agent}")
 
 driver = webdriver.Chrome(options=chrome_options)
-wait = WebDriverWait(driver, 30)
+wait = WebDriverWait(driver, 35)
+
+# محاكاة عميقة لإخفاء أثر السيرفر
+driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
 try:
-    print("Step 1: Accessing Instagram...")
+    print("🚀 محاكاة وضع سطح المكتب (PC Mode)...")
     driver.get("https://www.instagram.com/accounts/emailsignup/")
-    time.sleep(12)
+    time.sleep(15)
 
-    # التحقق من وجود واجهة الهاتف (كما في صورتك الثانية) والتحويل للبريد
-    try:
-        email_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Sign up with email')]")))
-        email_btn.click()
-        print("Switched to Email Sign up mode.")
-        time.sleep(3)
-    except:
-        print("Already on email field or button not found.")
+    # التحقق من ظهور صفحة الخطأ 429
+    if "429" in driver.title or "isn't working" in driver.page_source:
+        send_msg("⚠️ خطأ 429 (Desktop). سأحاول تغيير المسار وإعادة التحميل...")
+        time.sleep(30)
+        driver.refresh()
+        time.sleep(10)
 
-    # إدخال البريد المحدد تلقائياً
-    target_email = "psvuecpi@hi2.in"
+    # إدخال البيانات مباشرة (في وضع الكمبيوتر تظهر الحقول فوراً)
     email_field = wait.until(EC.element_to_be_clickable((By.NAME, "emailOrPhone")))
-    for char in target_email:
+    
+    # محاكاة كتابة بشرية سريعة لجهاز "كمبيوتر"
+    for char in TARGET_EMAIL:
         email_field.send_keys(char)
-        time.sleep(random.uniform(0.1, 0.3))
+        time.sleep(random.uniform(0.05, 0.2))
 
-    # تعبئة البيانات العشوائية
-    driver.find_element(By.NAME, "fullName").send_keys("Jasser " + ''.join(random.choices(string.ascii_letters, k=4)))
-    driver.find_element(By.NAME, "username").send_keys("jass_" + ''.join(random.choices(string.digits, k=8)))
-    driver.find_element(By.NAME, "password").send_keys("Pass@2026_Secure")
+    driver.find_element(By.NAME, "fullName").send_keys("Jasser PC " + ''.join(random.choices(string.ascii_letters, k=3)))
+    driver.find_element(By.NAME, "username").send_keys("pc_dev_" + ''.join(random.choices(string.digits, k=7)))
+    driver.find_element(By.NAME, "password").send_keys("Secure_PC_2026!")
     
     time.sleep(2)
     driver.find_element(By.XPATH, "//button[@type='submit']").click()
+    print("Main form submitted.")
 
-    # مرحلة تاريخ الميلاد
+    # التعامل مع تاريخ الميلاد في وضع سطح المكتب
     try:
         time.sleep(6)
-        month_sel = wait.until(EC.presence_of_element_to_be_clickable((By.XPATH, "//select[@title='Month:']")))
-        Select(month_sel).select_by_index(random.randint(1, 11))
-        Select(driver.find_element(By.XPATH, "//select[@title='Day:']")).select_by_index(random.randint(1, 25))
-        Select(driver.find_element(By.XPATH, "//select[@title='Year:']")).select_by_visible_text("1999")
+        month = wait.until(EC.presence_of_element_to_be_clickable((By.XPATH, "//select[@title='Month:']")))
+        Select(month).select_by_index(random.randint(1, 10))
+        Select(driver.find_element(By.XPATH, "//select[@title='Day:']")).select_by_index(random.randint(1, 20))
+        Select(driver.find_element(By.XPATH, "//select[@title='Year:']")).select_by_visible_text("1995")
         driver.find_element(By.XPATH, "//button[text()='Next']").click()
     except: pass
 
-    # طلب الكود من تليجرام
-    otp = wait_for_user_input(f"🔢 تم إدخال {target_email}\nأرسل كود التأكيد (OTP) الآن:")
+    # طلب الرمز
+    otp = wait_for_user_input(f"🔢 وضع الكمبيوتر: تم إدخال {TARGET_EMAIL}\nأرسل الكود الآن:")
     
-    code_input = wait.until(EC.element_to_be_clickable((By.NAME, "email_confirmation_code")))
-    code_input.send_keys(otp)
+    code_in = wait.until(EC.element_to_be_clickable((By.NAME, "email_confirmation_code")))
+    code_in.send_keys(otp)
     time.sleep(2)
     driver.find_element(By.XPATH, "//button[@type='submit']").click()
     
     time.sleep(10)
-    driver.save_screenshot("result.png")
-    with open("result.png", 'rb') as f:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID}, files={'photo': f})
+    driver.save_screenshot("pc_final.png")
+    with open("pc_final.png", 'rb') as f:
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID, 'caption': "✅ تم بنجاح عبر وضع سطح المكتب!"}, files={'photo': f})
 
 except Exception as e:
-    driver.save_screenshot("crash_report.png")
-    with open("crash_report.png", 'rb') as f:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID, 'caption': f"❌ تعطل: {str(e)[:100]}"}, files={'photo': f})
+    driver.save_screenshot("pc_error.png")
+    with open("pc_error.png", 'rb') as f:
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto", data={'chat_id': CHAT_ID, 'caption': f"❌ خطأ PC: {str(e)[:100]}"}, files={'photo': f})
 
 finally:
     driver.quit()
