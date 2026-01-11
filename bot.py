@@ -38,69 +38,63 @@ chrome_options.add_argument("--headless")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 chrome_options.add_argument("--window-size=1920,1080")
-
-agents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
-]
-chrome_options.add_argument(f"user-agent={random.choice(agents)}")
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+chrome_options.add_argument(f"user-agent={user_agent}")
 
 driver = webdriver.Chrome(options=chrome_options)
 wait = WebDriverWait(driver, 40)
 
-def run_automation():
-    for i in range(5):
-        try:
-            print(f"Attempt {i+1}: Opening Instagram...")
-            driver.get("https://www.instagram.com/accounts/emailsignup/")
-            time.sleep(random.randint(15, 25))
-            
-            if "429" not in driver.title and "isn't working" not in driver.page_source:
-                # إدخال البيانات
-                email_field = wait.until(EC.element_to_be_clickable((By.NAME, "emailOrPhone")))
-                for char in TARGET_EMAIL:
-                    email_field.send_keys(char)
-                    time.sleep(random.uniform(0.1, 0.3))
-                
-                driver.find_element(By.NAME, "fullName").send_keys("Jasser " + ''.join(random.choices(string.ascii_letters, k=4)))
-                driver.find_element(By.NAME, "username").send_keys("jass_dev_" + ''.join(random.choices(string.digits, k=7)))
-                driver.find_element(By.NAME, "password").send_keys("Secure_Pass_2026!")
-                
-                time.sleep(2)
-                driver.find_element(By.XPATH, "//button[@type='submit']").click()
-                
-                # تاريخ الميلاد
-                time.sleep(8)
-                try:
-                    month = wait.until(EC.presence_of_element_to_be_clickable((By.XPATH, "//select[@title='Month:']")))
-                    Select(month).select_by_index(random.randint(1, 11))
-                    Select(driver.find_element(By.XPATH, "//select[@title='Day:']")).select_by_index(random.randint(1, 25))
-                    Select(driver.find_element(By.XPATH, "//select[@title='Year:']")).select_by_visible_text("1998")
-                    driver.find_element(By.XPATH, "//button[text()='Next']").click()
-                except: pass
-                
-                # إرسال لقطة شاشة فوراً بعد إدخال المعلومات (قبل طلب الكود)
-                time.sleep(5)
-                driver.save_screenshot("before_otp.png")
-                send_photo("before_otp.png", "📸 هذه لقطة شاشة بعد إدخال المعلومات. إذا ظهرت خانة الكود، أرسله الآن.")
+try:
+    print("🚀 استكمال العملية من صفحة تاريخ الميلاد...")
+    driver.get("https://www.instagram.com/accounts/emailsignup/")
+    time.sleep(15)
 
-                # طلب الكود
-                otp = wait_for_user_input(f"🔢 نجحت في تجاوز الحظر! تم إدخال {TARGET_EMAIL}\nأرسل كود الـ OTP الآن:")
-                
-                code_input = wait.until(EC.element_to_be_clickable((By.NAME, "email_confirmation_code")))
-                code_input.send_keys(otp)
-                time.sleep(2)
-                driver.find_element(By.XPATH, "//button[@type='submit']").click()
-                
-                time.sleep(10)
-                driver.save_screenshot("final.png")
-                send_photo("final.png", "✅ النتيجة النهائية بعد إدخال الكود.")
-                return True
-            
-            time.sleep(60)
-        except Exception as e:
-            print(f"Error: {e}")
-    return False
+    # 1. إدخال البيانات الأولية (إذا لم تكن مسجلة)
+    try:
+        email_f = wait.until(EC.element_to_be_clickable((By.NAME, "emailOrPhone")))
+        email_f.send_keys(TARGET_EMAIL)
+        driver.find_element(By.NAME, "fullName").send_keys("Jasser " + ''.join(random.choices(string.ascii_letters, k=4)))
+        driver.find_element(By.NAME, "username").send_keys("jass_v_" + ''.join(random.choices(string.digits, k=7)))
+        driver.find_element(By.NAME, "password").send_keys("Secure_2026_!")
+        driver.find_element(By.XPATH, "//button[@type='submit']").click()
+        time.sleep(10)
+    except: pass
 
-run_automation()
-driver.quit()
+    # 2. التعامل مع صفحة تاريخ الميلاد (الموجودة في الصورة)
+    try:
+        print("🎂 ضبط تاريخ الميلاد...")
+        # انتظار تحميل القوائم المنسدلة
+        month = wait.until(EC.presence_of_element_to_be_clickable((By.XPATH, "//select[@title='Month:']")))
+        Select(month).select_by_index(random.randint(1, 10))
+        Select(driver.find_element(By.XPATH, "//select[@title='Day:']")).select_by_index(random.randint(1, 20))
+        Select(driver.find_element(By.XPATH, "//select[@title='Year:']")).select_by_visible_text("1995")
+        
+        # الضغط على Next
+        driver.find_element(By.XPATH, "//button[text()='Next']").click()
+        print("✅ تم الضغط على Next في صفحة الميلاد.")
+        time.sleep(8)
+    except Exception as e:
+        print(f"Birthday page error: {e}")
+
+    # 3. إرسال لقطة شاشة لخانة الكود
+    driver.save_screenshot("otp_step.png")
+    send_photo("otp_step.png", "📸 السكربت الآن في صفحة الكود. تفقد بريدك وأرسل الرمز هنا.")
+
+    # 4. انتظار الكود من تليجرام
+    otp = wait_for_user_input("🔢 أرسل كود الـ OTP الآن:")
+    
+    code_input = wait.until(EC.element_to_be_clickable((By.NAME, "email_confirmation_code")))
+    code_input.send_keys(otp)
+    time.sleep(2)
+    driver.find_element(By.XPATH, "//button[@type='submit']").click()
+    
+    time.sleep(12)
+    driver.save_screenshot("final_result.png")
+    send_photo("final_result.png", "✅ النتيجة النهائية. هل تم إنشاء الحساب؟")
+
+except Exception as e:
+    driver.save_screenshot("error.png")
+    send_photo("error.png", f"❌ تعطل السكربت: {str(e)[:100]}")
+
+finally:
+    driver.quit()
